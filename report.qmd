@@ -1,0 +1,134 @@
+---
+title: "Um Breve Ensaio Sobre os Sentimentos..."
+subtitle:  Dos Reviews do Spotify
+author: "Alisson Rosa"
+format: 
+  pdf:
+    documentclass: report 
+    include-in-header: 
+      text: |
+        \usepackage{float}
+    number-sections: true
+    fig-width: 5.9
+    fig-height: 2.5
+    indent: 2m
+    geometry:
+      - top=20mm
+      - left=18mm
+      - right=18mm
+      - heightrounded
+      
+execute:
+  warning: false
+  echo: false
+lang: pt
+
+---
+
+\section{\centering Introdução}
+
+O Spotify é um serviço digital que dá acesso instantâneo a milhões de músicas, podcasts, vídeos e outros conteúdos de criadores no mundo todo. Pode ser acessado pelo *browser*, sendo possível também baixar o aplicativo, estando disponível para diversas plataformas digitais. 
+Nesse ensaio vamos analisar os *reviews* feitos na Play Store sobre a versão para android, dessa maneira vamos examinar o comportamento dos reviews (estrelas), junto com o texto deixado pelo autor.
+
+
+\subsection{Uma visão Geral das Avaliações}
+
+Como é de conhecimento geral, as reclamações fazem mais barulho que os parabéns, nesse sentido espera-se uma quantidade considerável de avaliações nota 1 do aplicativo, por inúmeras questões, pois expectativas não satisfeitas, geram frustrações, e uma maneira de destilar tamanha frustração é jogar toda a fúria no review na Play Store. Avaliamos então pela figura NN, a proporção das avaliações
+
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+from utils.utils import time_plot, total_variable, my_wc
+prm={"figure.figsize":(9, 4),
+'figure.dpi':150}
+plt.rcParams.update(prm)
+sns.set_palette("viridis")
+```
+
+```{python}
+df = pd.read_csv("data/reviews.csv")
+```
+
+```{python}
+grouped_data = df.groupby("Rating", as_index=False).size()
+grouped_data = grouped_data.assign(Proporcao=grouped_data["size"] / grouped_data["size"].sum())
+sns.barplot(data= grouped_data, x="Rating", y="Proporcao")
+plt.xlabel("Avaliação")
+plt.ylabel("Proporção");
+
+
+```
+
+
+
+
+Notamos assim uma disputa entre amor e ódio em relação ao aplicativo.
+
+
+A partir de agora vamos aprofundar a análise desses reviews e relação ao tempo, e em seções seguintes aprofundaremos ainda mais a análise em relação aos reviews considerando também o texto deixado pelo autor.
+
+\subsection{Analisando os Review de Maneira Temporal}
+
+```{python}
+df['Time_submitted'] = pd.to_datetime(df['Time_submitted'])
+
+#%%
+df['month'] = df['Time_submitted'].apply(lambda x: x.month)
+df['hour'] = df['Time_submitted'].apply(lambda x: x.hour)
+df['day'] = df['Time_submitted'].apply(lambda x: x.day)
+```
+
+Vamos nessa subseção averiguar os review em termos de contagens e valores médios referentes, a mês, dia e hora.
+
+\subsubsection{Review Ao longo dos Meses}
+
+```{python}
+time_plot(df, 'month')
+```
+
+
+\subsubsection{Review Ao longo dos Dias}
+
+```{python}
+time_plot(df, 'day')
+
+```
+
+
+\subsubsection{Review Ao longo das Horas}
+
+
+```{python}
+time_plot(df, 'hour')
+
+```
+
+\section{\centering Texto  e seus ajustes}
+
+Em toda análise textual é necessária um bom pré processamento dos dados, portanto é isso que vamos tratar nessa seção. Realizaremos:
+
+* Remoção de Stop Words^[Stop Words são palavras as quais possuem uma alta taxa de frequência no texto, mas carregam pouca informações para a análise a ser realizada.]
+
+* Lematização^[Tarefa de determinar se duas palavras tem a mesma raiz, apesar de diferença de "estrutura"]
+
+* Remoção de Espaços indevidos
+
+Porém antes do processamento, vejamos o comportamento da frequência das palavras:
+Para o casos de 5 estrelas notamos palavras positivas como "love", "great"  e "easy" em destaque.
+
+```{python}
+#| fig-pos: 't'
+#| fig-cap: "Wordcloud para Reviews de 5 estrelas"
+my_wc(df, 4)
+```
+E para o caso de reviews de 1 estrela nota-se palavras referentes a problemas como "fix", "even" e "issue"
+
+```{python}
+#| fig-pos: 'h'
+#| fig-cap: "Wordcloud para Reviews de 1 estrela"
+my_wc(df, 'podre')
+```
+Nota-se  em ambos os casos que palavras como "Spotify", "Song", "App" e "Song" possuem uma alta frequência, porém não agregam muita informação para a análise, assim é interessante a remoção delas.
