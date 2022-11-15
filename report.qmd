@@ -40,6 +40,8 @@ Como é de conhecimento geral, as reclamações fazem mais barulho que os parab�
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
 from utils.utils import time_plot, total_variable, my_wc
 prm={"figure.figsize":(9, 4),
@@ -131,4 +133,28 @@ E para o caso de reviews de 1 estrela nota-se palavras referentes a problemas co
 #| fig-cap: "Wordcloud para Reviews de 1 estrela"
 my_wc(df, 'podre')
 ```
-Nota-se  em ambos os casos que palavras como "Spotify", "Song", "App" e "Song" possuem uma alta frequência, porém não agregam muita informação para a análise, assim é interessante a remoção delas.
+Nota-se em ambos os casos que palavras como "Spotify", "Song", "App" e "Song" possuem uma alta frequência, porém não agregam muita informação para a análise, assim é interessante a remoção delas.
+
+\subsubsection{Um ajuste dos Reviews}
+Vamos aqui nessa subseção recategorizar a variável numérica da avaliação:
+* 1 a 2 Estrelas: Negativo
+* 3 Estrelas: Neutro
+* 4 a 5 Estrelas: Positivo
+
+Portanto a partir desse momento, quando refere-se a review positivos, estamos nos referenciando a 4 a 5 estrelas e assim por diante.
+
+
+```{python}
+df['Review_words'] = [len(x.split()) for x in df['Review']]
+rating = df['Rating'] 
+df['Sentiment'] = np.where((1 <= rating) & (rating <= 2), 'negative', 
+np.where((4 <=rating) & (rating<=5), 'positive', 'neutral'))
+```
+
+\subsection{Análise das Stop Words}
+
+Vamos nessa subseção remover as stops words, fazer algumas análises em relação aos reviews agora categorizados e também refazer algumas análises da seção anterior.
+
+
+
+
