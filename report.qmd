@@ -4,7 +4,7 @@ subtitle:  Dos Reviews do Spotify
 author: "Alisson Rosa"
 format: 
   pdf:
-    documentclass: report 
+    documentclass: report
     include-in-header: 
       text: |
         \usepackage{float}
@@ -17,7 +17,6 @@ format:
       - left=18mm
       - right=18mm
       - heightrounded
-      
 execute:
   warning: false
   echo: false
@@ -42,6 +41,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
+import numpy as np
 
 from utils.utils import time_plot, total_variable, my_wc
 prm={"figure.figsize":(9, 4),
@@ -151,10 +151,83 @@ df['Sentiment'] = np.where((1 <= rating) & (rating <= 2), 'negative',
 np.where((4 <=rating) & (rating<=5), 'positive', 'neutral'))
 ```
 
-\subsection{Análise das Stop Words}
+\subsection{Análise Sem as Stop Words}
 
 Vamos nessa subseção remover as stops words, fazer algumas análises em relação aos reviews agora categorizados e também refazer algumas análises da seção anterior.
 
 
+```{python}
+stop_words = set(stopwords.words("english"))
+stop_words.update(["app", "song", "Spotify", "music", "spotify"])
 
+df['Review_wsw'] = df['Review'].apply(lambda x: " ".join(x for x in x.split() if x not in stop_words))
+
+```
+
+
+
+```{python}
+#| fig-cap: "Wordcloud para Reviews de 5 estrelas sem StopWords"
+my_wc(df, var = "Review_wsw", Filter = 4)
+```
+
+
+```{python}
+#| fig-cap: "Wordcloud para Reviews de 1 estrela sem StopWords"
+my_wc(df, var = "Review_wsw", Filter = "podre")
+```
+## Palavras em Review
+
+Vejamos agora a quantidade de palavras pelos Reviews
+
+### Para Reviews Negativos
+
+```{python}
+df[df['Sentiment'] == 'negatives'][['Review_words']].describe()
+```
+
+```{python}
+sns.boxplot(data=df[df["Sentiment"] == 'negative'], x="Review_words")
+
+```
+
+
+### Para Reviews Positivos
+
+```{python}
+df[df['Sentiment'] == 'positives'][['Review_words']].describe()
+```
+
+
+
+```{python}
+sns.boxplot(data=df[df["Sentiment"] == 'positive'], x="Review_words")
+```
+
+## Revisitando o tempo
+
+
+```{python}
+#| fig-cap: "(a) Total de Palavras por Review ao longo dos dias, (b) Total de Palavras por Review ao longo dos meses"
+fig, ax = plt.subplots(1, 2)
+ax[0].set_title("(a)")
+ax[0].set_ylabel("Total")
+ax[1].set_ylabel("Total")
+ax[1].set_title("(b)")
+sns.lineplot(data=df[df['Review_words']< 180], y='Review_words', x='day', hue='Sentiment', ax=ax[0])
+ax[0].get_legend().remove()
+sns.lineplot(data=df[df['Review_words']< 180], y='Review_words', x='month', hue='Sentiment', ax=ax[1])
+fig.show()
+```
+
+\section{\centering Modelagem}
+
+\subsection{Desenvolvendo as Covariáveis}
+Como vimos, não temos covariáveis "automaticas" no dataset, assim faz-se necessário criar baseado no Review escrito, vamos aqui utilizar de duas técnicas, a saber Vetores  de Contagens^[Count Vectorization] e TF-DF. Dessa maneira queremos avaliar o sentimento do usuário ao fazer o review escrito, por questões técnicas^[Técnicas aqui quer dizer: Não foi apresentado no curso] vamos utilizar somente os reviews que são positivos e negativos, dessa maneira removendo os classificados como neutros, tornando-se um problema de classificação binária.
+
+\subsubsection{Count Vectorization}
+A ideia é bastante simples, vamos criar uma vetor para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no review.
+![Elephant](docs/imgs/vector.jpg)
+
+\subsubsection{TF-DF}
 
