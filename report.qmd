@@ -4,13 +4,13 @@ subtitle:  Dos Reviews do Spotify
 author: "Alisson Rosa"
 format: 
   pdf:
-    documentclass: report
     include-in-header: 
       text: |
         \usepackage{float}
     number-sections: true
     fig-width: 5.9
-    fig-height: 2.5
+    fig-height: 2.3
+    fig-pos: H
     indent: 2m
     geometry:
       - top=20mm
@@ -21,13 +21,15 @@ execute:
   warning: false
   echo: false
 lang: pt
-
+bibliography: docs/bib.bib
+nocite: |
+          @*
 ---
 
 \section{\centering Introdução}
 
 O Spotify é um serviço digital que dá acesso instantâneo a milhões de músicas, podcasts, vídeos e outros conteúdos de criadores no mundo todo. Pode ser acessado pelo *browser*, sendo possível também baixar o aplicativo, estando disponível para diversas plataformas digitais. 
-Nesse ensaio vamos analisar os *reviews* feitos na Play Store sobre a versão para android, dessa maneira vamos examinar o comportamento dos reviews (estrelas), junto com o texto deixado pelo autor.
+Nesse ensaio vamos analisar os *reviews* feitos na Play Store sobre a versão para *Android*, dessa maneira vamos examinar o comportamento dos reviews (estrelas), junto com o texto deixado pelo autor.
 
 
 \subsection{Uma visão Geral das Avaliações}
@@ -43,8 +45,16 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 import numpy as np
 
-from utils.utils import time_plot, total_variable, my_wc
-prm={"figure.figsize":(9, 4),
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+from sklearn.ensemble import RandomForestClassifier
+
+from utils.utils import time_plot, total_variable, my_wc, Display
+prm={"figure.figsize":(9, 3),
 'figure.dpi':150}
 plt.rcParams.update(prm)
 sns.set_palette("viridis")
@@ -55,6 +65,7 @@ df = pd.read_csv("data/reviews.csv")
 ```
 
 ```{python}
+#| fig-cap: "Proporção das Avaliações por Estrelas"
 grouped_data = df.groupby("Rating", as_index=False).size()
 grouped_data = grouped_data.assign(Proporcao=grouped_data["size"] / grouped_data["size"].sum())
 sns.barplot(data= grouped_data, x="Rating", y="Proporcao")
@@ -67,10 +78,10 @@ plt.ylabel("Proporção");
 
 
 
-Notamos assim uma disputa entre amor e ódio em relação ao aplicativo.
+Notamos assim uma disputa entre amor e ódio em relação ao aplicativo, portanto agora é importante é pensar, existe algum no uso de palavras para esses reviews? Existe algum momento no tempo que há mais Reviews "negativos" que "positivos"?
 
 
-A partir de agora vamos aprofundar a análise desses reviews e relação ao tempo, e em seções seguintes aprofundaremos ainda mais a análise em relação aos reviews considerando também o texto deixado pelo autor.
+A partir de agora vamos aprofundar a análise desses reviews em relação ao tempo, e em seções seguintes aprofundaremos ainda mais a análise em relação aos reviews considerando também o texto deixado pelo autor.
 
 \subsection{Analisando os Review de Maneira Temporal}
 
@@ -87,14 +98,20 @@ Vamos nessa subseção averiguar os review em termos de contagens e valores méd
 
 \subsubsection{Review Ao longo dos Meses}
 
+O que pode se notar pela figura NN é um comportamento elevado de Reviews no mês 4 e o que acarretou em um decréscimo no valor médio dos reviews. 
+
 ```{python}
+#| label: fig-plt
+#| fig-cap: "Comportamento dos Reviews ao longo dos meses"
 time_plot(df, 'month')
 ```
 
 
 \subsubsection{Review Ao longo dos Dias}
-
+Em relação aos dias temos um comportamento semelhantes ao meses, em que dias que possuem mais reviews, possuem avaliação média inferior as demais, isso indica portanto o que se espera-se: Quando um problema acontece os usuários tendem a reclamar de maneira rápida.
 ```{python}
+#| fig-cap: "Comportamento dos Reviews ao longo dos dias"
+
 time_plot(df, 'day')
 
 ```
@@ -102,8 +119,10 @@ time_plot(df, 'day')
 
 \subsubsection{Review Ao longo das Horas}
 
-
+Em relação as horas temos uma grande quantidade de reviews no horário das 10-15h e depois o pico acontece as 18h, assim como o menor valor de review também acontece as 18h. Vale ressaltar que a média em relação as horas tende a manter-se estacionária até as 15h, um comportamento não visto na média dos meses e dias.
 ```{python}
+#| fig-cap: "Comportamento dos Reviews ao longo das horas"
+
 time_plot(df, 'hour')
 
 ```
@@ -136,24 +155,25 @@ my_wc(df, 'podre')
 Nota-se em ambos os casos que palavras como "Spotify", "Song", "App" e "Song" possuem uma alta frequência, porém não agregam muita informação para a análise, assim é interessante a remoção delas.
 
 \subsubsection{Um ajuste dos Reviews}
-Vamos aqui nessa subseção recategorizar a variável numérica da avaliação:
+Vamos aqui nessa subseção recategorizar a variável numérica da avaliação deixando da seguinte maneira:
+
 * 1 a 2 Estrelas: Negativo
 * 3 Estrelas: Neutro
 * 4 a 5 Estrelas: Positivo
 
-Portanto a partir desse momento, quando refere-se a review positivos, estamos nos referenciando a 4 a 5 estrelas e assim por diante.
+Portanto a partir desse momento, quando refere-se a review negativos, estamos nos referenciando a 1 a 2 estrelas e assim por diante.
 
 
 ```{python}
 df['Review_words'] = [len(x.split()) for x in df['Review']]
 rating = df['Rating'] 
-df['Sentiment'] = np.where((1 <= rating) & (rating <= 2), 'negative', 
-np.where((4 <=rating) & (rating<=5), 'positive', 'neutral'))
+df['Sentiment'] = np.where((1 <= rating) & (rating <= 2), 'negativo', 
+np.where((4 <=rating) & (rating<=5), 'positivo', 'neutral'))
 ```
 
 \subsection{Análise Sem as Stop Words}
 
-Vamos nessa subseção remover as stops words, fazer algumas análises em relação aos reviews agora categorizados e também refazer algumas análises da seção anterior.
+Vamos nessa breve subseção remover as stops words, fazer algumas análises em relação aos reviews agora categorizados e também refazer algumas análises da seção anterior. Além das stop words "tradicionais" do inglês, serão removidas as seguintes palavras: app, song, music, e spotify.
 
 
 ```{python}
@@ -163,31 +183,29 @@ stop_words.update(["app", "song", "Spotify", "music", "spotify"])
 df['Review_wsw'] = df['Review'].apply(lambda x: " ".join(x for x in x.split() if x not in stop_words))
 
 ```
+Vejamos a titulo de curiosidade a wordcloud para Reviews de 5 estrelas, agora sem stop words
 
 
 
 ```{python}
-#| fig-cap: "Wordcloud para Reviews de 5 estrelas sem StopWords"
+#| fig-cap: "Wordcloud para Reviews de 5 estrelas sem Stop Words"
 my_wc(df, var = "Review_wsw", Filter = 4)
 ```
+Nota-se assim agora um destaque para palavras positivas como: "love", "great" e "good"
 
 
-```{python}
-#| fig-cap: "Wordcloud para Reviews de 1 estrela sem StopWords"
-my_wc(df, var = "Review_wsw", Filter = "podre")
-```
 ## Palavras em Review
-
-Vejamos agora a quantidade de palavras pelos Reviews
+Nessa subseção vamos averiguar a quantidade de palavras pelos Reviews, será que reviews positivos possuem mais palavras que negativos? Será que o comportamento da quantidade das palavras se mantém constante ao longo do tempo? As respostas para essas perguntas e mais serão respondidas agora.
 
 ### Para Reviews Negativos
 
 ```{python}
-df[df['Sentiment'] == 'negatives'][['Review_words']].describe()
+display(df[df['Sentiment'] == 'negativo'][['Review_words']].rename(columns={"Review_words": "Total de Palavras"}).describe().T.to_markdown())
+
 ```
 
 ```{python}
-sns.boxplot(data=df[df["Sentiment"] == 'negative'], x="Review_words")
+sns.boxplot(data=df[df["Sentiment"] == 'negativo'], x="Review_words");
 
 ```
 
@@ -195,17 +213,19 @@ sns.boxplot(data=df[df["Sentiment"] == 'negative'], x="Review_words")
 ### Para Reviews Positivos
 
 ```{python}
-df[df['Sentiment'] == 'positives'][['Review_words']].describe()
+display(df[df['Sentiment'] == 'positivo'][['Review_words']].rename(columns={"Review_words": "Total de Palavras"}).describe().T.to_markdown())
 ```
 
 
 
 ```{python}
-sns.boxplot(data=df[df["Sentiment"] == 'positive'], x="Review_words")
+sns.boxplot(data=df[df["Sentiment"] == 'positivo'], x="Review_words");
 ```
 
 ## Revisitando o tempo
+Vamos nessa subseção averiguar o comportamento da quantidade de palavras por sentimento ao longo do tempo. Assim o que podemos notar pela figura NN é que os reviews classificados como positivos tem uma quantidade de palavras bem inferior aos negativos.
 
+Em relação ao comportamento em relação aos dias, tem-se que que para os reviews positivos visualmente uma estacionariedade em relação a quantidade de palavras, o que não acontece para o caso de reviews neutros e negativos. Para o caso dos meses é visível a não estacionariedade, tem-se que para meses iniciais do ano, os reviews tem mais palavras que os situados no meio.
 
 ```{python}
 #| fig-cap: "(a) Total de Palavras por Review ao longo dos dias, (b) Total de Palavras por Review ao longo dos meses"
@@ -222,12 +242,74 @@ fig.show()
 
 \section{\centering Modelagem}
 
+
+```{python}
+data = df[df['Sentiment'] != 'neutral']
+## MODELAGEM
+X = data['Review_wsw']
+y = data['Sentiment']
+```
+
 \subsection{Desenvolvendo as Covariáveis}
-Como vimos, não temos covariáveis "automaticas" no dataset, assim faz-se necessário criar baseado no Review escrito, vamos aqui utilizar de duas técnicas, a saber Vetores  de Contagens^[Count Vectorization] e TF-DF. Dessa maneira queremos avaliar o sentimento do usuário ao fazer o review escrito, por questões técnicas^[Técnicas aqui quer dizer: Não foi apresentado no curso] vamos utilizar somente os reviews que são positivos e negativos, dessa maneira removendo os classificados como neutros, tornando-se um problema de classificação binária.
+Como vimos, não temos covariáveis "automaticas" no dataset, assim faz-se necessário criar baseado no Review escrito, vamos aqui utilizar de duas técnicas, a saber Vetores  de Contagens^[Count Vectorization] e TF-IDF. Dessa maneira queremos avaliar o sentimento do usuário ao fazer o review escrito, por questões técnicas^[Técnicas aqui quer dizer: Não foi apresentado no curso a qual esse trabalho esta sendo apresentado] vamos utilizar somente os reviews que são positivos e negativos, dessa maneira removendo os classificados como neutros, tornando-se um problema de classificação binária.
+
+```{python}
+#| fig-cap: "Proporção das Avaliações por Sentimento"
+#| fig-pos: H
+plt.pie(x=y.value_counts(), labels=y.unique(), autopct='%.0f%%')
+plt.title("Proporção dos Sentimentos");
+
+```
+
 
 \subsubsection{Count Vectorization}
-A ideia é bastante simples, vamos criar uma vetor para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no review.
+A ideia é bastante simples, vamos criar um vetor para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no review, um exemplo didativo pode ser visto na figura NN.
 ![Elephant](docs/imgs/vector.jpg)
 
-\subsubsection{TF-DF}
+```{python}
+vectorizer = CountVectorizer()
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=13)
+
+```
+
+```{python}
+vectorizer.fit(X_train)
+X_train_count = vectorizer.transform(X_train)
+X_test_count = vectorizer.transform(X_test)
+```
+
+
+
+
+\subsubsection{TF-IDF}
+
+O termo TF-IDF significa "Term Frequency - Inverse Document Frequency", é uma técnica assim como Count Vectorizer (CV) para contar a quantidade de palavras em um documento^[Documento no contexto de NLP signfica observação], ao contrário do CV, aqui utilizamos *scores* para cada palavra, que, em geral, refere-se a relevância dela no documento.
+
+O método para computar o TF-IDF é feito multiplicando duas métricas:
+
+* Quantas vezes a palavra apareceu no documento (tf)
+* Inverso da frequência da palavra entre os documentos (idf)
+
+Em termos formais temos:
+Seja w uma palavra, d um documento, e D o conjunto dos documentos^[Também conhecido como corpus], o tf-idf fica definido como:
+$$tf-idf(w, d, D) = tf(w, d)idf(t, D)$$
+```{python}
+
+tfidf = TfidfVectorizer(analyzer='char', ngram_range=(2,3))
+tfidf.fit(X_train)
+X_train_tfidf = tfidf.transform(X_train)
+X_test_tfidf = tfidf.transform(X_test)
+```
+
+
+
+\subsection{Ajustando Regressão Logistica}
+
+
+
+# A verdadeira Análise de Sentimento
+
+
+
+# Referências
 
