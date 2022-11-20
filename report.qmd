@@ -106,7 +106,7 @@ Vamos nessa subseção averiguar os *review* em termos de contagens e valores m�
 
 \subsubsection{Review Ao longo dos Meses}
 
-O que pode se notar pela figura @fig-plt é um comportamento elevado de *reviews* no mês 4 e o que acarretou em um decréscimo no valor médio dos *reviews* no mesmo mês. 
+O que pode se notar pela @fig-plt é um comportamento elevado de *reviews* no mês 4 e o que acarretou em um decréscimo no valor médio dos *reviews* no mesmo mês. 
 
 ```{python}
 #| label: fig-plt
@@ -181,7 +181,7 @@ np.where((4 <=rating) & (rating<=5), 'positivo', 'neutral'))
 
 \subsection{Análise Sem as Stop Words}
 
-Vamos nessa breve subseção remover as stops words, fazer algumas análises em relação aos *reviews* agora categorizados e também refazer algumas análises da seção anterior. Além das stop words "tradicionais" do inglês, serão removidas as seguintes palavras: app, song, music, e spotify.
+Nessa breve subseção remover as **stops words**, fazer algumas análises em relação aos *reviews* agora categorizados e também refazer algumas análises da seção anterior. Além das stop words "tradicionais" do inglês, serão removidas as seguintes palavras: app, song, music, e spotify.
 
 
 ```{python}
@@ -227,7 +227,7 @@ plt.xlabel("Quantidade de Palavras");
 
 
 ### Para Reviews Positivos
-Referente aos *reviews* positivos temos um hábito bastante diferente que os negativos, pois  temos o quantil de 75% de somente 31 palavras, enquanto no negativo eram 50, a mediana é de 18 para casos positivos enquanto para negativos era de 32. Pela @fig-pos podemos reparar muitos *reviews* categorizados como *outliers* isso se deve ao fato de que a maior parte possui poucos palavras.
+Referente aos *reviews* positivos temos um hábito bastante diferente do que os negativos, pois  temos o quantil de 75% de somente 31 palavras, enquanto no negativo eram 50, a mediana é de 18 para casos positivos enquanto para negativos era de 32. Pela @fig-pos podemos reparar muitos *reviews* categorizados como *outliers* isso se deve ao fato de que a maior parte possui poucas palavras.
 
 ```{python}
 #| label: tbl-pos
@@ -279,7 +279,7 @@ y = data['Sentiment']
 ```
 
 \subsection{Desenvolvendo as Covariáveis}
-Como vimos, não temos covariáveis "automaticas" no dataset, assim faz-se necessário a criação baseando-se no *review* escrito, vamos aqui utilizar de duas técnicas, a saber Vetores  de Contagens^[Count Vectorization] e TF-IDF. Dessa forma pretendemos avaliar o sentimento do usuário ao fazer o *review* escrito, por questões técnicas^[Técnicas aqui quer dizer: Não foi apresentado no curso a qual esse trabalho esta sendo apresentado] vamos utilizar somente os *reviews* que são positivos e negativos, dessa maneira removendo os classificados como neutros, tornando-se um problema de classificação binária.
+Como vimos, não temos covariáveis "automáticas" no **dataset**, assim faz-se necessário a criação baseando-se no *review* escrito, vamos aqui utilizar de duas técnicas, a saber Vetores  de Contagens^[Count Vectorization] e TF-IDF. Dessa forma pretendemos avaliar o sentimento do usuário ao fazer o *review* escrito, por questões técnicas^[Técnicas aqui quer dizer: Não foi apresentado no curso a qual esse trabalho esta sendo apresentado] vamos utilizar somente os *reviews* que são positivos e negativos, dessa maneira removendo os classificados como neutros, tornando-se um problema de classificação binária.
 Vejamos pela @fig-pie a proporção de *reviews* agora categorizados como negativos e positivos.
 
 ```{python}
@@ -290,12 +290,17 @@ plt.pie(x=y.value_counts(), labels=y.unique(), autopct='%.0f%%');
 
 ```
 
-Para a tristeza daqueles que tendem a inclinar-se a suspeitar mais do mal que do bem temos agora uma quantidade levemente superior para casos de *reviews* de positivos ^[O amor venceu!!], dessa forma em termos de modelagem, é dito um problema de classes^[Onde classes refere-se á: Positivo e Negativo] balanceadas.
+Para a tristeza daqueles que tendem a inclinar-se a suspeitar mais do mal que do bem, temos agora uma quantidade levemente superior para casos de *reviews* de sentimentos positivos ^[O amor venceu!!], dessa forma em termos de modelagem, é dito um problema de classes^[Onde classes refere-se á: Positivo e Negativo] balanceadas.
 
 
 \subsubsection{Count Vectorization}
-A ideia é bastante simples, vamos criar uma coluna para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no *review* escrito, um exemplo didático pode ser visto na figura NN.
-![Elephant](docs/imgs/vector.jpg){fig-align="right"}
+A ideia é bastante simples, vamos criar uma coluna/vetor para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no *review* escrito, um exemplo didático pode ser visto na figura NN.
+
+\begin{figure}[t]
+\includegraphics[width=8cm]{docs/imgs/vector.jpg}
+\centering
+\end{figure}
+![img](docs/imgs/vector.jpg){fig-align="center"}
 
 ```{python}
 vectorizer = CountVectorizer()
@@ -339,10 +344,10 @@ Vamos aqui ajustar uma regressão logística e um modelo de random forest para c
 
 
 \subsubsection{Modelos Com CV}
-Somos capazes de constatar que apesar de CV ser um método ingênuo, ele é capaz de criar covariáveis que conseguem predizer com uma acurácia extremamente adequada nos dados de teste o sentimento do autor do *review* em ambos os modelos.
+Pela @fig-models somos capazes de constatar que apesar de CV ser um método ingênuo, ele é capaz de criar covariáveis que conseguem predizer com uma acurácia extremamente adequada nos dados de teste o sentimento do autor do *review* em ambos os modelos.
 
 ```{python}
-rf_cv = RandomForestClassifier(random_state=19)
+rf_cv = RandomForestClassifier(random_state=19, n_estimators = 105, min_samples_split =  12, min_samples_leaf = 1)
 rf_cv.fit(X_train_count, y_train)
 rf_cv_accuracy = rf_cv.score(X_test_count, y_test)
 ```
@@ -376,6 +381,28 @@ rf_tf = RandomForestClassifier()
 rf_tf.fit(X_train_tfidf, y_train)
 rf_tf_score = rf_tf.score(X_test_tfidf, y_test)
 ```
+
+```{python}
+rl_tf = LogisticRegression(random_state=0, penalty='none', max_iter=10000)
+rl_tf.fit(X_train_tfidf, y_train)
+rl_tf_score = rl_tf.score(X_test_tfidf, y_test)
+
+```
+
+
+```{python}
+#| label: fig-models-tf
+
+#| fig-cap: "(a) Curva Roc para a Random Forest usando CV, (b)  Curva Roc para a Regressão Logistica usando CV"
+fig, ax = plt.subplots(1,2)
+ax[0].set_title("(a)")
+ax[1].set_title("(b)")
+RocCurveDisplay.from_estimator(rf_tf, X_test_tfidf, y_test, ax=ax[0])
+RocCurveDisplay.from_estimator(rl_tf, X_test_tfidf, y_test, ax=ax[1]);
+```
+
+\subsubsection{Modelos Final}
+Finalizando, temos como modelo final uma random forest com pré processamento de CV, com 25% das observações sendo para teste, obteve aproximadamente uma acurácia de 88%.
 
 
 
