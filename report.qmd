@@ -34,7 +34,7 @@ Nesse ensaio, vamos analisar os *reviews* feitos na Play Store sobre a versão p
 
 \subsection{Uma visão Geral das Avaliações}
 
-Como é de conhecimento geral, erros geram muito mais comentários que acertos^[Se você não tem conhecimento, essa análise é a evidência pura e concentra disso], dessa maneira, reclamações de problemas tendem a criar mais agitações que congratulações de acertos, nesse sentido, espera-se uma quantidade considerável de avaliações nota 1 do aplicativo. Pois usuários de aplicativos são propensos a ter expectativas de sua utilização, entretanto, expectativas não satisfeitas, geram frustrações, e uma maneira de destilar tamanha frustração é lançar toda a fúria no *review* na Play Store. Começamos portanto, avaliando pela @fig-prop, a proporção das avaliações.
+Como é de conhecimento geral, erros geram muito mais comentários que acertos^[Se você não dispõe de tal conhecimento, essa análise é a evidência pura e concentra disso.], dessa maneira, reclamações de problemas tendem a criar mais agitações que congratulações de acertos, nesse sentido, espera-se uma quantidade considerável de avaliações nota 1 do aplicativo. Pois os usuários de aplicativos são propensos a ter expectativas de sua utilização, entretanto, expectativas não satisfeitas, geram frustrações, e uma maneira de destilar tamanha frustração é lançar toda a fúria no *review* na Play Store. Começamos, portanto, avaliando pela @fig-prop, a proporção das avaliações.
 
 
 ```{python}
@@ -52,6 +52,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import RocCurveDisplay
+from sklearn.linear_model import LogisticRegression
 
 from utils.utils import time_plot, total_variable, my_wc, Display
 prm={"figure.figsize":(9, 3),
@@ -83,11 +85,11 @@ plt.ylabel("Proporção");
 Notamos assim uma disputa entre amor e ódio em relação ao aplicativo, portanto agora é importante refletir sobre alguns pontos:
 
 * Existe algum padrão no uso de palavras para esses *reviews*? 
-* Existe algum momento no tempo que há mais *reviews* "negativos" que "positivos"? 
+* Há algum momento no tempo que há mais *reviews* "negativos" que "positivos"? 
 * É possível classificar o sentimento do autor somente baseado no texto?
 
 
-Nas seguintes seções vamos aprofundar a análise desses *reviews* em relação ao tempo,  também aprofundaremos ainda mais a análise em relação aos *reviews* considerando também o texto deixado pelo autor, dessa maneira as respostas para essas perguntas vão surgir naturalmente.
+Nas seguintes seções vamos aprofundar a análise desses *reviews* em relação ao tempo,  também aprofundaremos ainda mais a análise em relação aos *reviews* considerando também o texto deixado pelo autor, dessa maneira, as respostas para essas perguntas vão surgir ao longo do texto.
 
 \subsection{Analisando os Review de Maneira Temporal}
 
@@ -147,7 +149,7 @@ Porém antes do processamento, vejamos o comportamento da frequência das palavr
 Para o casos de 5 estrelas notamos palavras positivas como "love", "great"  e "easy" em destaque.
 
 ```{python}
-#| fig-pos: 't'
+#| fig-pos: 'h'
 #| fig-cap: "Wordcloud para Reviews de 5 estrelas"
 my_wc(df, 4)
 ```
@@ -204,14 +206,18 @@ Nota-se, agora um destaque para palavras positivas como: "love", "great" e "good
 Nessa subseção vamos averiguar a quantidade de palavras pelos *reviews*, será que *reviews* positivos possuem mais palavras que negativos? Será que o comportamento da quantidade das palavras se mantém constante ao longo do tempo? As respostas para essas perguntas e mais serão respondidas nessa seção.
 
 ### Para Reviews Negativos
+Para o caso de *reviews* negativos, notamos uma média de aproximadamente 38 palavras, um mínimo de 3 palavras, e um *review* que incrivelmente atinge 700 palavras!
 
+Vale que salientar que apesar da existência de reviews bastante tagarelas, a quantidade de palavras tende a se comportar a sua maior parte até 100, como podemos ver tanto pela @tbl-neg e pela @fig-neg.
 ```{python}
+#| label: tbl-neg
 #| tbl-cap: Análise descritiva para a quantidade de palavras em sentimentos negativos
 Display(df[df['Sentiment'] == 'negativo'][['Review_words']].rename(columns={"Review_words": "Total de Palavras"}).describe().T.to_markdown())
 
 ```
 
 ```{python}
+#| label: fig-neg
 #| fig-cap: "Quantidade de palavras para sentimentos negativos"
 sns.boxplot(data=df[df["Sentiment"] == 'negativo'], x="Review_words")
 plt.xlabel("Quantidade de Palavras");
@@ -221,8 +227,10 @@ plt.xlabel("Quantidade de Palavras");
 
 
 ### Para Reviews Positivos
+Referente aos *reviews* positivos temos um hábito bastante diferente que os negativos, pois  temos o quantil de 75% de somente 31 palavras, enquanto no negativo eram 50, a mediana é de 18 para casos positivos enquanto para negativos era de 32. Pela @fig-pos podemos reparar muitos *reviews* categorizados como *outliers* isso se deve ao fato de que a maior parte possui poucos palavras.
 
 ```{python}
+#| label: tbl-pos
 #| tbl-cap: Análise descritiva para a quantidade de palavras em sentimentos positivos
 Display(df[df['Sentiment'] == 'positivo'][['Review_words']].rename(columns={"Review_words": "Total de Palavras"}).describe().T.to_markdown())
 ```
@@ -230,6 +238,7 @@ Display(df[df['Sentiment'] == 'positivo'][['Review_words']].rename(columns={"Rev
 
 
 ```{python}
+#| label: fig-pos
 #| fig-cap: "Quantidade de palavras para sentimentos positivos"
 sns.boxplot(data=df[df["Sentiment"] == 'positivo'], x="Review_words")
 plt.xlabel("Quantidade de Palavras");
@@ -237,12 +246,13 @@ plt.xlabel("Quantidade de Palavras");
 ```
 
 ## Revisitando o tempo
-Vamos nessa subseção averiguar o comportamento da quantidade de palavras por sentimento ao longo do tempo. Assim o que podemos notar pela figura NN é que os *reviews* classificados como positivos tem uma quantidade de palavras bem inferior aos negativos.
+Vamos nessa subseção averiguar o comportamento da quantidade de palavras por sentimento ao longo do tempo. Assim o que podemos notar pela @fig-tmp é que os *reviews* classificados como positivos tem uma quantidade de palavras bem inferior aos negativos não somente no sentido global como visto pela @tbl-neg e @tbl-pos mas também no sentido temporal.
 
-Em relação ao comportamento em relação aos dias, tem-se que que para os *reviews* positivos visualmente uma estacionariedade em relação a quantidade de palavras, o que não acontece para o caso de *reviews* neutros e negativos. Para o caso dos meses é visível a não estacionariedade, tem-se que para meses iniciais do ano, os *reviews* tem mais palavras que os situados no meio.
+Em relação ao comportamento em relação aos dias, tem-se que para os *reviews* positivos visualmente uma estacionariedade em relação a quantidade de palavras, o que não acontece para o caso de *reviews* neutros e negativos. Para o caso dos meses é visível a não estacionariedade, tem-se que para meses iniciais do ano, os *reviews* possuem mais palavras que os situados no meses centrais do ano.
 
 ```{python}
 #| fig-height: "2.9"
+#| label: fig-tmp
 
 #| fig-cap: "(a) Total de Palavras por Review ao longo dos dias, (b) Total de Palavras por Review ao longo dos meses"
 
@@ -259,7 +269,7 @@ fig.show()
 ```
 
 \section{\centering Modelagem}
-Vamos nessa seção criar um modelo preditivo que fornece o sentimento do autor do *review* baseado em somente no texto deixado pelo mesmo. Reiterando que um sentimento positivo nesse contexto significa *review* numérico de 4 a 5 estrelas, e um sentimento negativo *reviews* de 1 a 2 estrelas na Play Store.
+Vamos nessa seção criar um modelo preditivo que fornece o sentimento do autor do *review* baseado no texto deixado pelo mesmo. Reiterando que um sentimento positivo nesse contexto, significa *review* numérico de 4 a 5 estrelas, e um sentimento negativo *reviews* de 1 a 2 estrelas na Play Store.
 
 ```{python}
 data = df[df['Sentiment'] != 'neutral']
@@ -269,7 +279,7 @@ y = data['Sentiment']
 ```
 
 \subsection{Desenvolvendo as Covariáveis}
-Como vimos, não temos covariáveis "automaticas" no dataset, assim faz-se necessário criar baseado no *review* escrito, vamos aqui utilizar de duas técnicas, a saber Vetores  de Contagens^[Count Vectorization] e TF-IDF. Dessa maneira queremos avaliar o sentimento do usuário ao fazer o *review* escrito, por questões técnicas^[Técnicas aqui quer dizer: Não foi apresentado no curso a qual esse trabalho esta sendo apresentado] vamos utilizar somente os *reviews* que são positivos e negativos, dessa maneira removendo os classificados como neutros, tornando-se um problema de classificação binária.
+Como vimos, não temos covariáveis "automaticas" no dataset, assim faz-se necessário a criação baseando-se no *review* escrito, vamos aqui utilizar de duas técnicas, a saber Vetores  de Contagens^[Count Vectorization] e TF-IDF. Dessa forma pretendemos avaliar o sentimento do usuário ao fazer o *review* escrito, por questões técnicas^[Técnicas aqui quer dizer: Não foi apresentado no curso a qual esse trabalho esta sendo apresentado] vamos utilizar somente os *reviews* que são positivos e negativos, dessa maneira removendo os classificados como neutros, tornando-se um problema de classificação binária.
 Vejamos pela @fig-pie a proporção de *reviews* agora categorizados como negativos e positivos.
 
 ```{python}
@@ -280,11 +290,11 @@ plt.pie(x=y.value_counts(), labels=y.unique(), autopct='%.0f%%');
 
 ```
 
-Temos agora uma quantidade levemente superior para casos de *reviews* de positivos ^[O amor venceu!!], dessa maneira em termos de modelagem, é dito um problema de classes balanceadas.
+Para a tristeza daqueles que tendem a inclinar-se a suspeitar mais do mal que do bem temos agora uma quantidade levemente superior para casos de *reviews* de positivos ^[O amor venceu!!], dessa forma em termos de modelagem, é dito um problema de classes^[Onde classes refere-se á: Positivo e Negativo] balanceadas.
 
 
 \subsubsection{Count Vectorization}
-A ideia é bastante simples, vamos criar um vetor para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no *review*, um exemplo didático pode ser visto na figura NN.
+A ideia é bastante simples, vamos criar uma coluna para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no *review* escrito, um exemplo didático pode ser visto na figura NN.
 ![Elephant](docs/imgs/vector.jpg){fig-align="right"}
 
 ```{python}
@@ -324,16 +334,57 @@ X_test_tfidf = tfidf.transform(X_test)
 
 
 
-\subsection{Ajustando Regressão Logística}
+\subsection{Ajustando Modelos}
+Vamos aqui ajustar uma regressão logística e um modelo de random forest para classificar o sentimento do texto. Desse modo vamos ajustar 4 modelos, pois vamos ajustar também um modelo para CV e um modelo para TF-IDF
+
+
+\subsubsection{Modelos Com CV}
+Somos capazes de constatar que apesar de CV ser um método ingênuo, ele é capaz de criar covariáveis que conseguem predizer com uma acurácia extremamente adequada nos dados de teste o sentimento do autor do *review* em ambos os modelos.
+
+```{python}
+rf_cv = RandomForestClassifier(random_state=19)
+rf_cv.fit(X_train_count, y_train)
+rf_cv_accuracy = rf_cv.score(X_test_count, y_test)
+```
+
+
+
+```{python}
+rl_cv = LogisticRegression(random_state=0, penalty='none', max_iter=10000)
+rl_cv.fit(X_train_count, y_train)
+rl_cv_score = rl_cv.score(X_test_count, y_test)
+
+```
+
+```{python}
+#| label: fig-models
+
+#| fig-cap: "(a) Curva Roc para a Random Forest usando CV, (b)  Curva Roc para a Regressão Logistica usando CV"
+fig, ax = plt.subplots(1,2)
+ax[0].set_title("(a)")
+ax[1].set_title("(b)")
+RocCurveDisplay.from_estimator(rf_cv, X_test_count, y_test, ax=ax[0])
+RocCurveDisplay.from_estimator(rl_cv, X_test_count, y_test, ax=ax[1]);
+```
+
+
+\subsubsection{Modelos Com TF-IDF}
+
+
+```{python}
+rf_tf = RandomForestClassifier()
+rf_tf.fit(X_train_tfidf, y_train)
+rf_tf_score = rf_tf.score(X_test_tfidf, y_test)
+```
 
 
 
 # Epilogo
 
 
-Um fato a ser considerado é a existência do *review escrito é dependente do review numérico, assim a análise anterior somente teria validade se por algum motivo fosse possível deixar somente o review escrito, o que no momento não acontece.
+Um fato a ser considerado é que a existência do *review* escrito é dependente do review numérico, assim a análise anterior somente teria validade, se por algum motivo fosse possível deixar somente o review escrito, o que no momento não acontece.
 
-Assim é necessário extrair o sentimento do autor do texto **exclusivamente** pelo texto, pois dessa maneira podemos conflitar a predição do sentimento com relação a estrela deixada como review. Visto que existe um fenômeno tal qual o review numérico não condiz com o sentimento escrito, pois como já dizia Dostoievski "A natureza das pessoas não são todas iguais; para muitas, uma conclusão lógica transforma-se às vezes num sentimento fortíssimo que domina todo o seu ser e que é muito difícil de expulsar ou transformar...".
+Assim, é necessário extrair o sentimento do autor do texto **exclusivamente** pelo texto, pois dessa maneira podemos conflitar a predição do sentimento com relação a estrela deixada como *review*. Visto que existe um fenômeno tal qual o review numérico não condiz com o sentimento escrito, pois como já dizia Dostoievski "A natureza das pessoas não são todas iguais; para muitas, uma conclusão lógica transforma-se às vezes num sentimento fortíssimo que domina todo o seu ser e que é muito difícil de expulsar ou transformar...".
 
 # Referências
 
