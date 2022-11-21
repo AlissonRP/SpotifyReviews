@@ -7,6 +7,7 @@ format:
     include-in-header: 
       text: |
         \usepackage{float}
+        \usepackage{graphicx}
     number-sections: true
     fig-width: 5.9
     fig-height: 2.5
@@ -294,13 +295,10 @@ Para a tristeza daqueles que tendem a inclinar-se a suspeitar mais do mal que do
 
 
 \subsubsection{Count Vectorization}
-A ideia é bastante simples, vamos criar uma coluna/vetor para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no *review* escrito, um exemplo didático pode ser visto na figura NN.
+A ideia é bastante simples, vamos criar uma coluna/vetor para cada palavra única no banco de dados e associar a quantidade de vezes que aparece no *review* escrito, um exemplo didático pode ser visto a seguir.
 
-\begin{figure}[t]
-\includegraphics[width=8cm]{docs/imgs/vector.jpg}
-\centering
-\end{figure}
-![img](docs/imgs/vector.jpg){fig-align="center"}
+![Exemplo de CV](docs/imgs/vector.jpg){fig-align="center"}
+
 
 ```{python}
 vectorizer = CountVectorizer()
@@ -405,6 +403,7 @@ RocCurveDisplay.from_estimator(rl_tf, X_test_tfidf, y_test, ax=ax[1]);
 Finalizando, temos como modelo final uma random forest com pré processamento de CV, com 25% das observações sendo para teste, obteve aproximadamente uma acurácia de 88%.
 
 
+\section{Encerramento Momentâneo}
 
 # Epilogo
 

@@ -1,0 +1,188 @@
+---
+title: "Um Ensaio Sobre os Sentimentos"
+subtitle: "Dos Reviews do Spotify"
+title-slide-attributes:
+  data-background-image: "imgs/spotify_black.jpg"
+  data-background-opacity: "0.7"
+author: "<br> Alisson Rosa"
+format: 
+    revealjs:
+        theme: serif
+        preview-links: auto
+        chalkboard: true
+        transition: fade
+        controls: true
+lang: pt
+---
+
+## Introduzindo o Spotify?  {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+::: {.incremental}
+- Músicas, Podcasts etc
+
+<br />
+
+- *Review* em texto e *Review* numérico (estrelas)
+
+<br />
+
+- Classificar o **Sentimento** do autor do *review*
+
+<br />
+
+:::
+
+
+```{python}
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
+import numpy as np
+
+
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import RocCurveDisplay
+from sklearn.linear_model import LogisticRegression
+
+from utils.utils import time_plot, total_variable, my_wc, Display
+prm={"figure.figsize":(9, 3),
+'figure.dpi':150}
+plt.rcParams.update(prm)
+sns.set_palette("viridis")
+sns.set_style("whitegrid")
+```
+
+```{python}
+df = pd.read_csv("../data/reviews.csv")
+```
+
+
+
+## Textos e Seus Problemas {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+* **Cada pessoa tem sua maneira de escrever**
+
+<br />
+
+::: {.incremental}
+- Aquele seu bolo estava muito bom 🥰🥰🥰
+
+- Aquele seu bolo estava muito bom...
+
+- Aquele seu bolo estava muito bom!!!
+
+- Aquele seu bolo estava muito bom 🤮🤮🤮
+
+<br />
+
+:::
+
+::: footer
+não é uma indireta
+:::
+
+
+## Análise Básica {background-image="imgs/sptfy_back.jpg" background-opacity=0.02}
+
+```{python}
+#| label: fig-prop
+#| fig-cap: "Proporção das Avaliações por Estrelas"
+grouped_data = df.groupby("Rating", as_index=False).size()
+grouped_data = grouped_data.assign(Proporcao=grouped_data["size"] / grouped_data["size"].sum())
+sns.barplot(data= grouped_data, x="Rating", y="Proporcao")
+plt.xlabel("Avaliação")
+plt.ylabel("Proporção");
+
+
+```
+
+
+## Análise Básica {background-image="imgs/sptfy_back.jpg" background-opacity=0.06}
+
+```{python}
+df['Time_submitted'] = pd.to_datetime(df['Time_submitted'])
+
+#%%
+df['month'] = df['Time_submitted'].apply(lambda x: x.month)
+df['hour'] = df['Time_submitted'].apply(lambda x: x.hour)
+df['day'] = df['Time_submitted'].apply(lambda x: x.day)
+```
+
+
+```{python}
+#| label: fig-plt
+#| fig-cap: "Comportamento dos Reviews ao longo dos meses"
+time_plot(df, 'month')
+```
+
+## Análise Básica {background-image="imgs/sptfy_back.jpg" background-opacity=0.05}
+
+
+```{python}
+#| fig-cap: "Comportamento dos Reviews ao longo das horas"
+
+time_plot(df, 'hour')
+
+```
+
+
+## Uso de Palavras {background-image="imgs/sptfy_back.jpg" background-opacity=0.05}
+
+```{python}
+#| fig-pos: 'h'
+#| fig-cap: "Wordcloud para Reviews de 5 estrelas"
+my_wc(df, 4)
+```
+
+
+## Uso de Palavras {background-image="imgs/sptfy_back.jpg" background-opacity=0.06}
+
+```{python}
+#| fig-pos: 'h'
+#| fig-cap: "Wordcloud para Reviews de 1 estrela"
+my_wc(df, 'podre')
+```
+
+## Processamento do Texto {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+* Remoção de Stop Words
+
+* Lematização
+
+* Remoção de Espaços indevidos
+
+
+
+
+```{python}
+stop_words = set(stopwords.words("english"))
+stop_words.update(["app", "song", "Spotify", "music", "spotify"])
+
+df['Review_wsw'] = df['Review'].apply(lambda x: " ".join(x for x in x.split() if x not in stop_words))
+
+```
+
+## Processamento do Texto {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+```{python}
+#| fig-cap: "Wordcloud para Reviews de 5 estrelas sem Stop Words"
+my_wc(df, var = "Review_wsw", Filter = 4)
+```
+
+## Quase Sentimentos {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+* 1 a 2 Estrelas: Negativo
+* 3 Estrelas: Neutro
+* 4 a 5 Estrelas: Positivo
+
+## Uso de Palavras {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+* Existe diferença nos *review* escritos?
+
