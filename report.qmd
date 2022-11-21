@@ -117,7 +117,7 @@ time_plot(df, 'month')
 
 
 \subsubsection{Review Ao longo dos Dias}
-Em relação aos dias temos um comportamento semelhantes aos meses, em que dias que possuem mais *reviews*, possuem avaliação média inferior aos demais, isso indica portanto o que se espera-se: Quando um problema acontece os usuários tendem a reclamar de maneira rápida.
+Em relação aos dias temos um comportamento semelhantes aos meses, em que dias que possuem mais *reviews*, possuem avaliação média inferior aos demais, isso indica portanto que o ódio nasce quando as pessoas se reúnem^[Ou é ao contrário?].
 ```{python}
 #| fig-cap: "Comportamento dos Reviews ao longo dos dias"
 
@@ -291,7 +291,7 @@ plt.pie(x=y.value_counts(), labels=y.unique(), autopct='%.0f%%');
 
 ```
 
-Para a tristeza daqueles que tendem a inclinar-se a suspeitar mais do mal que do bem, temos agora uma quantidade levemente superior para casos de *reviews* de sentimentos positivos ^[O amor venceu!!], dessa forma em termos de modelagem, é dito um problema de classes^[Onde classes refere-se á: Positivo e Negativo] balanceadas.
+Para a tristeza daqueles que tendem a inclinar-se a suspeitar mais do mal que do bem, temos agora uma quantidade levemente superior para casos de *reviews* de sentimentos positivos, dessa forma em termos de modelagem, é dito um problema de classes^[Onde classes refere-se : Positivo e Negativo] balanceadas.
 
 
 \subsubsection{Count Vectorization}
@@ -373,6 +373,7 @@ RocCurveDisplay.from_estimator(rl_cv, X_test_count, y_test, ax=ax[1]);
 
 \subsubsection{Modelos Com TF-IDF}
 
+Apesar da técnica TF-IDF ser mais meticulosa que o CV, o seu esforço em criar covariáveis não condiz com a sua performance na detecção dos sentimentos, visto que em ambos os modelos, tem desempenho inferior aos modelos com CV.^[A realidade pode ser dolorosa, mas é algo que você deve aprender a aceitar.]
 
 ```{python}
 rf_tf = RandomForestClassifier()
@@ -399,18 +400,18 @@ RocCurveDisplay.from_estimator(rf_tf, X_test_tfidf, y_test, ax=ax[0])
 RocCurveDisplay.from_estimator(rl_tf, X_test_tfidf, y_test, ax=ax[1]);
 ```
 
-\subsubsection{Modelos Final}
+\subsubsection{Modelo Final}
 Finalizando, temos como modelo final uma random forest com pré processamento de CV, com 25% das observações sendo para teste, obteve aproximadamente uma acurácia de 88%.
 
 
-\section{Encerramento Momentâneo}
 
-# Epilogo
+
+# O começo e o fim são um só
 
 
 Um fato a ser considerado é que a existência do *review* escrito é dependente do review numérico, assim a análise anterior somente teria validade, se por algum motivo fosse possível deixar somente o review escrito, o que no momento não acontece.
 
-Assim, é necessário extrair o sentimento do autor do texto **exclusivamente** pelo texto, pois dessa maneira podemos conflitar a predição do sentimento com relação a estrela deixada como *review*. Visto que existe um fenômeno tal qual o review numérico não condiz com o sentimento escrito, pois como já dizia Dostoievski "A natureza das pessoas não são todas iguais; para muitas, uma conclusão lógica transforma-se às vezes num sentimento fortíssimo que domina todo o seu ser e que é muito difícil de expulsar ou transformar...".
+Assim, é necessário extrair o sentimento do autor do texto **exclusivamente** pelo texto, pois dessa maneira podemos conflitar a predição do sentimento com relação a estrela deixada como *review*. Visto que existe um fenômeno tal qual o *review*  numérico não condiz com o sentimento do autor, pois como já dizia Dostoievski "A natureza das pessoas não são todas iguais; para muitas, uma conclusão lógica transforma-se às vezes num sentimento fortíssimo que domina todo o seu ser e que é muito difícil de expulsar ou transformar...".
 
 # Referências
 

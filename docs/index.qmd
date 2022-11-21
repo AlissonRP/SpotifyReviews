@@ -7,7 +7,7 @@ title-slide-attributes:
 author: "<br> Alisson Rosa"
 format: 
     revealjs:
-        theme: serif
+        theme: [serif, custom.scss]
         preview-links: auto
         chalkboard: true
         transition: fade
@@ -52,7 +52,7 @@ from sklearn.metrics import RocCurveDisplay
 from sklearn.linear_model import LogisticRegression
 
 from utils.utils import time_plot, total_variable, my_wc, Display
-prm={"figure.figsize":(9, 3),
+prm={"figure.figsize":(9, 4),
 'figure.dpi':150}
 plt.rcParams.update(prm)
 sns.set_palette("viridis")
@@ -152,14 +152,28 @@ my_wc(df, 'podre')
 
 ## Processamento do Texto {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
 
+::: {.incremental}
 * Remoção de Stop Words
 
-* Lematização
+* Remoção de URLs e tags
 
 * Remoção de Espaços indevidos
 
 
+```{shell}
+data["Review"]=data["Review"].apply(lambda x: re.sub(r'(http|https|ftp|ssh)://([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:/~+#-]*[\w@?^=%&/~+#-])?', '' , str(x)))
+```
 
+:::
+
+
+
+```{python}
+df['Review_words'] = [len(x.split()) for x in df['Review']]
+rating = df['Rating'] 
+df['Sentiment'] = np.where((1 <= rating) & (rating <= 2), 'negativo', 
+np.where((4 <=rating) & (rating<=5), 'positivo', 'neutral'))
+```
 
 ```{python}
 stop_words = set(stopwords.words("english"))
@@ -168,6 +182,8 @@ stop_words.update(["app", "song", "Spotify", "music", "spotify"])
 df['Review_wsw'] = df['Review'].apply(lambda x: " ".join(x for x in x.split() if x not in stop_words))
 
 ```
+
+
 
 ## Processamento do Texto {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
 
@@ -178,11 +194,90 @@ my_wc(df, var = "Review_wsw", Filter = 4)
 
 ## Quase Sentimentos {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
 
+<br />
+
 * 1 a 2 Estrelas: Negativo
+
+<br />
+
 * 3 Estrelas: Neutro
+
+<br />
+
 * 4 a 5 Estrelas: Positivo
 
 ## Uso de Palavras {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
 
-* Existe diferença nos *review* escritos?
+<br />
 
+* **Existe diferença nos *review* escritos?**
+
+<br />
+
+## Palavras e Reviews Negativos {background-image="imgs/sptfy_back.jpg" background-opacity=0.07}
+
+
+```{python}
+Display(df[df['Sentiment'] == 'negativo'][['Review_words']].rename(columns={"Review_words": "Total de Palavras"}).describe().to_markdown())
+```
+
+![](https://upload.wikimedia.org/wikipedia/commons/thumb/7/71/Arrow_east.svg/1200px-Arrow_east.svg.png){.absolute top=390 left=10 width="28" height="90"}
+
+
+## Palavras e Reviews Positivos {background-image="imgs/sptfy_back.jpg" background-opacity=0.07}
+
+
+```{python}
+Display(df[df['Sentiment'] == 'positivo'][['Review_words']].rename(columns={"Review_words": "Total de Palavras"}).describe().to_markdown())
+```
+
+
+## Sentimentos Temporalmente {background-image="imgs/sptfy_back.jpg" background-opacity=0.07}
+
+```{python}
+
+
+fig, ax = plt.subplots(1, 2)
+ax[0].set_title("(a)")
+ax[0].set_ylabel("Total")
+ax[1].set_ylabel("Total")
+ax[1].set_title("(b)")
+sns.lineplot(data=df[df['Review_words']< 180], y='Review_words', x='day', hue='Sentiment', ax=ax[0])
+ax[0].get_legend().remove()
+sns.lineplot(data=df[df['Review_words']< 180], y='Review_words', x='month', hue='Sentiment', ax=ax[1])
+fig.show()
+```
+
+
+## Covariáveis {background-image="imgs/sptfy_back.jpg" background-opacity=0.11}
+
+::: {.incremental}
+* Modelos manipulam **matrizes**
+
+<br>
+
+* Como transformar o texto em matriz?
+
+:::
+
+## Count Vectorization {background-image="imgs/sptfy_back.jpg" background-opacity=0.08}
+
+![Exemplo de CV](imgs/vector.jpg){fig-align="center"}
+
+## Modelos {background-image="imgs/sptfy_back.jpg" background-opacity=0.05}
+
+![](imgs/models.png){.absolute  left=10 width="1080" height="790"}
+
+## Epílogo {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+* Existe um problema
+
+::: {.incremental}
+
+
+
+:::
+
+::: footer
+ao menos um problema*
+:::
