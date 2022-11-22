@@ -2,6 +2,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from wordcloud import WordCloud
+from IPython.display import display, Markdown
+
+
+def Display(df):
+    return display(Markdown(df))
 
 
 def total_variable(df, var):
@@ -23,15 +28,15 @@ def time_plot(df, var):
     ax[1].set_ylabel("Média")
     ax[1].set_title("Média do Review")
     sns.lineplot(data=total_hour, x=var, y="count", ax=ax[0])
-    sns.lineplot(data=total_variable(df, "day"), x="day", y="mean", ax=ax[1])
+    sns.lineplot(data=total_variable(df, var), x=var, y="mean", ax=ax[1])
     fig.show()
 
 
-def my_wc(df, Filter=0):
+def my_wc(df, Filter=0, var="Review"):
     if Filter == "podre":
-        data = df[df["Rating"] == 1]["Review"]
+        data = df[df["Rating"] == 1][var]
     else:
-        data = df[df["Rating"] > Filter]["Review"]
+        data = df[df["Rating"] > Filter][var]
     wc = WordCloud(
         width=1000, height=1000, background_color="white", max_words=500
     ).generate(" ".join(data))
