@@ -214,6 +214,14 @@ my_wc(df, var = "Review_wsw", Filter = 4)
 
 <br />
 
+## Menos de 4 Palavras {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+```{python}
+Display(df[df['Review_words']<4][['Review', "Rating"]].head(5).to_markdown())
+```
+
+
+
 ## Palavras e Reviews Negativos {background-image="imgs/sptfy_back.jpg" background-opacity=0.07}
 
 
@@ -266,13 +274,19 @@ fig.show()
 
 ## Modelos {background-image="imgs/sptfy_back.jpg" background-opacity=0.05}
 
-![](imgs/models.png){.absolute  left=10 width="1080" height="790"}
+![](imgs/models.png){.absolute  left=10 width="1080" height="650"}
 
 ## Epílogo {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
 
 * Existe um problema
 
 ::: {.incremental}
+
+- Carne mal passada, comida extremamente salgada, ambiente sujo, porém a garçonete era um anjo: NOTA 5
+
+<br>
+
+- Conteúdo muito bem administrado, atividades com níveis excelentes, material de alta qualidade, mas o professor cobrava presença: NOTA 0
 
 
 
@@ -281,3 +295,8 @@ fig.show()
 ::: footer
 ao menos um problema*
 :::
+## Epílogo {background-image="imgs/sptfy_back.jpg" background-opacity=0.1}
+
+- **Extrair o sentimento do texto** e conflitar com o *review* numérico
+
+![](https://1.cms.s81c.com/sites/default/files/2021-01-06/ICLH_Diagram_Batch_01_03-DeepNeuralNetwork-WHITEBG.png){.absolute top=190 right=150 width="850" height="490"}
