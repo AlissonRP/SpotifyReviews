@@ -55,7 +55,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import RocCurveDisplay
 from sklearn.linear_model import LogisticRegression
-
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from utils.utils import time_plot, total_variable, my_wc, Display
 prm={"figure.figsize":(9, 3),
 'figure.dpi':150}
@@ -345,7 +345,7 @@ Vamos aqui ajustar uma regressão logística e um modelo de random forest para c
 Pela @fig-models somos capazes de constatar que apesar de CV ser um método ingênuo, ele é capaz de criar covariáveis que conseguem predizer com uma acurácia extremamente adequada nos dados de teste o sentimento do autor do *review* em ambos os modelos.
 
 ```{python}
-rf_cv = RandomForestClassifier(random_state=19, n_estimators = 105, min_samples_split =  12, min_samples_leaf = 1)
+rf_cv = RandomForestClassifier(random_state=19, n_estimators=105, min_samples_split=12, min_samples_leaf=1)
 rf_cv.fit(X_train_count, y_train)
 rf_cv_accuracy = rf_cv.score(X_test_count, y_test)
 ```
@@ -362,7 +362,8 @@ rl_cv_score = rl_cv.score(X_test_count, y_test)
 ```{python}
 #| label: fig-models
 
-#| fig-cap: "(a) Curva Roc para a Random Forest usando CV, (b)  Curva Roc para a Regressão Logistica usando CV"
+#| fig-cap: "(a) Curva Roc para a Random Forest usando CV, (b)  Curva Roc para a 
+# Regressão Logistica usando CV"
 fig, ax = plt.subplots(1,2)
 ax[0].set_title("(a)")
 ax[1].set_title("(b)")
@@ -412,6 +413,80 @@ Finalizando, temos como modelo final uma random forest com pré processamento de
 Um fato a ser considerado é que a existência do *review* escrito é dependente do review numérico, assim a análise anterior somente teria validade, se por algum motivo fosse possível deixar somente o review escrito, o que no momento não acontece.
 
 Assim, é necessário extrair o sentimento do autor do texto **exclusivamente** pelo texto, pois dessa maneira podemos conflitar a predição do sentimento com relação a estrela deixada como *review*. Visto que existe um fenômeno tal qual o *review*  numérico não condiz com o sentimento do autor, pois como já dizia Dostoievski "A natureza das pessoas não são todas iguais; para muitas, uma conclusão lógica transforma-se às vezes num sentimento fortíssimo que domina todo o seu ser e que é muito difícil de expulsar ou transformar...".
+
+
+# Epilógo
+
+Vamos aqui introduzir um modelo mais robusto para analisar os sentimentos, vamos conflitar a classificação com o review numérico, e juntamente comparar com as predições do modelo anteriormente utilizado.
+
+## Modelo Vader
+
+Valence Aware Dictionary for Sentiment Reasoning, ou Vader é um modelo de classificação de sentimentos semi-supervisionado onde é possível analisar ambas^[Positivo e Negativo] polaridades de um texto, Vader é capaz de fornecer não somente o sentimento, mas também a intensidade do mesmo.
+
+O modelo possui uma grande vantagem sobre os que foram utilizados aqui, pois não é necessário pré-processamento do texto e ele também consegue lidar bem com pontuações, emojis e palavras em caixa baixa/alta.
+
+O Vader nos fornece a intensidade de sentimento positivo, negativo, neutro e também um escore denominado *compound* que normaliza^[A medida fica entre -1 e 1] os três sentimentos anteriores em um só, sendo valores mais próximos de -1 indicando sentimento negativo e mais próximos de 1 sentimentos positivos.
+
+
+Vejamos dessa maneira pela @tbl-vad a comparação da Random com CV e do Vader.
+```{python}
+
+def my_predict(text):
+    teste = vectorizer.transform(pd.Series(text))
+    return rf_cv.predict(teste)
+#%%
+def predict_vader(text):
+    sid = SentimentIntensityAnalyzer()
+    sentiment = sid.polarity_scores(text)
+    return sentiment['compound']
+
+
+
+#%%
+predict_vader(X_test.reset_index(drop=True)[3])
+
+#%%
+my_predict(X_test.reset_index(drop=True)[3])[0]
+
+#%%
+
+texts = [X_test.reset_index(drop=True)[3],
+X_test.reset_index(drop=True)[21],
+X_test.reset_index(drop=True)[35],
+X_test.reset_index(drop=True)[40],
+X_test.reset_index(drop=True)[47]]
+
+#%%
+compar_models = pd.DataFrame({"texts": texts})
+
+
+#%%
+compar_models['Random Forest'] = compar_models.apply(my_predict)
+
+compar_models['Vader'] = compar_models['texts'].apply(predict_vader)
+#%%
+
+compar_models["Vader Resumido"] = compar_models["Vader"].apply(lambda x: np.where(x > 0, 'positivo',
+np.where(x < 0, 'negativo', 'neutro')))
+
+# %%
+real_values = [y_test.reset_index(drop=True)[3],
+y_test.reset_index(drop=True)[21],
+y_test.reset_index(drop=True)[35],
+y_test.reset_index(drop=True)[40],
+y_test.reset_index(drop=True)[47]]
+
+compar_models["Sentimento Real"] = real_values
+
+```
+
+```{python}
+#| label: tbl-vad
+#| tbl-cap: Comparação dos Modelos
+Display(compar_models.drop('Vader', axis=1).to_markdown())
+```
+
+O que podemos notar é que em casos que o Vader classifica o *review* como neutro (*compound* = 0) a random forest classifica como negativo, e no ocorrências em que o Vader não classifica como neutro temos concordância entre os modelos.
 
 # Referências
 
